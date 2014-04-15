@@ -50,7 +50,6 @@ int main(int argc, char** argv) {
     mpc_parser_t* Lispy    = mpc_new("lispy");
 
     mpca_lang(MPC_LANG_DEFAULT,
-                /*number   : /-?[0-9]+(.[0-9]+)?/ ; \*/
             "\
                 number   : /-?[0-9]+/ ; \
                 operator : '+' | '-' | '*' | '/' ; \
@@ -69,8 +68,6 @@ int main(int argc, char** argv) {
         // Try to parse the input
         mpc_result_t r;
         if(mpc_parse("<stdin>", input, Lispy, &r)) {
-            // TEST
-            /*printf("Number of nodes in input: %i\n", number_of_nodes(r.output));*/
             // Print the AST on success
             mpc_ast_print(r.output);
             // Evaluate expression
