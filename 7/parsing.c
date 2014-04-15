@@ -40,6 +40,7 @@ int number_of_nodes(mpc_ast_t *ast) {
 }
 
 long eval(mpc_ast_t *t, int print);
+long eval_op(long x, char* op, long y);
 
 int main(int argc, char** argv) {
 
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPC_LANG_DEFAULT,
             "\
                 number   : /-?[0-9]+/ ; \
-                operator : '+' | '-' | '*' | '/' ; \
+                operator : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" ; \
                 expr     : <number> | '(' <operator> <expr>+ ')' ; \
                 lispy    : /^/ <operator> <expr>+ /$/ ; \
             ",
@@ -97,10 +98,10 @@ long eval(mpc_ast_t *t, int print) {
 
     // The first child is always a '(' so we skip it
     // The second child [1] is the operator
-    if(print) printf("(%c", *t->children[1]->contents);
+    if(print) printf("(%s", t->children[1]->contents);
     // Store the first value in the variable so we can apply the calculations to it
     long val = eval(t->children[2], print);
-    for(int i = 3; i < t->children_num - 1; i++) {
+/*    for(int i = 3; i < t->children_num - 1; i++) {
         switch(*t->children[1]->contents) {
             case '+':
                 val = val + eval(t->children[i], print);
@@ -114,9 +115,52 @@ long eval(mpc_ast_t *t, int print) {
             case '/':
                 val = val / eval(t->children[i], print);
                 break;
+            case '%':
+                val = val % eval(t->children[i], print);
+                break;
+            case '^':
+                val = val / eval(t->children[i], print);
+                break;
         }
+    }
+*/
+
+    char *op = t->children[1]->contents;
+    // Check if the op is "-" and if there is only one argument
+    // If yes then negate the number
+    if(strcmp(op, "-") == 0 && t->children_num <= 4) {
+        return -val;
+    }
+    int i = 3;
+    while(strstr(t->children[i]->tag, "expr")){
+        val = eval_op(val, op, eval(t->children[i], print));
+        i++;
     }
 
     if(print) printf(")");
     return val;
+}
+
+long eval_op(long x, char* op, long y) {
+    if (strcmp(op, "+") == 0) { return x + y; }
+    if (strcmp(op, "-") == 0) { return x - y; }
+    if (strcmp(op, "*") == 0) { return x * y; }
+    if (strcmp(op, "/") == 0) { return x / y; }
+    if (strcmp(op, "%") == 0) { return x % y; }
+    if (strcmp(op, "^") == 0) {
+        long val = x;
+        for(int i = 1; i < y; i++) {
+            val = eval_op(val, "*", x);
+        }
+        return val;
+    }
+    if (strcmp(op, "min") == 0) {
+        if(x <= y) return x;
+        else       return y;
+    }
+    if (strcmp(op, "max") == 0) {
+        if(x >= y) return x;
+        else       return y;
+    }
+    return 0;
 }
