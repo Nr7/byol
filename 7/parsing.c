@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             ",
             Number, Operator, Expr, Lispy);
 
-    puts("Lispy Version 0.0.0.0.1");
+    puts("Lispy Version 0.0.0.0.3");
     puts("Press Ctrl+c to Exit\n");
 
     while(1) {
@@ -145,7 +145,7 @@ long eval_op(long x, char* op, long y) {
     if (strcmp(op, "+") == 0) { return x + y; }
     if (strcmp(op, "-") == 0) { return x - y; }
     if (strcmp(op, "*") == 0) { return x * y; }
-    if (strcmp(op, "/") == 0) { return x / y; }
+    if (strcmp(op, "/") == 0) { return x / y; } // Divide by zero error fixed in 8
     if (strcmp(op, "%") == 0) { return x % y; }
     if (strcmp(op, "^") == 0) {
         long val = x;

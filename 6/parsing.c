@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
             ",
             Number, Operator, Expr, Lispy);
 
-    puts("Lispy Version 0.0.0.0.1");
+    puts("Lispy Version 0.0.0.0.2");
     puts("Press Ctrl+c to Exit\n");
 
     while(1) {
