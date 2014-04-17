@@ -131,7 +131,7 @@ lval eval(mpc_ast_t *t, int print) {
     lval val = eval(t->children[2], print);
 
     // Check if the op is "-" and if there is only one argument
-    // If yes then negate the number
+    // If yes then just negate the number and return it
     if(strcmp(op, "-") == 0 && t->children_num <= 4) {
         val.value.num = -val.value.num;
         return val;
