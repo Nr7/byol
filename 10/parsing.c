@@ -68,6 +68,9 @@ lval *builtin_tail(lval *v);
 lval *builtin_list(lval *v);
 lval *builtin_eval(lval *v);
 lval *builtin_join(lval *v);
+lval *builtin_cons(lval *v);
+lval *builtin_len(lval *v);
+lval *builtin_init(lval *v);
 
 lval *lval_join(lval *x, lval *y);
 
@@ -98,7 +101,7 @@ int main(int argc, char** argv) {
     mpca_lang(MPC_LANG_DEFAULT,
             "\
                 number   : /-?[0-9]+/ ; \
-                symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" | \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" ; \
+                symbol   : '+' | '-' | '*' | '/' | '%' | '^' | \"min\" | \"max\" | \"list\" | \"head\" | \"tail\" | \"join\" | \"eval\" | \"cons\" | \"len\" | \"init\" ; \
                 sexpr    : '(' <expr>* ')' ; \
                 qexpr    : '{' <expr>* '}' ; \
                 expr     : <number> | <symbol> | <sexpr> | <qexpr> ; \
@@ -220,6 +223,9 @@ lval *builtin(lval *v, char *func){
     if (strcmp("tail", func) == 0) return builtin_tail(v);
     if (strcmp("join", func) == 0) return builtin_join(v);
     if (strcmp("eval", func) == 0) return builtin_eval(v);
+    if (strcmp("cons", func) == 0) return builtin_cons(v);
+    if (strcmp("len",  func) == 0) return builtin_len(v);
+    if (strcmp("init", func) == 0) return builtin_init(v);
     if (strstr("+-/*%minmax", func)) return builtin_op(v, func);
     lval_del(v);
     return lval_err("Unknown function!");
@@ -351,6 +357,47 @@ lval *builtin_join(lval *v) {
     return x;
 }
 
+lval *builtin_cons(lval *v) {
+    LASSERT(v, (v->count == 2), "Function 'cons' passed incorrect amount of arguments!");
+    LASSERT(v, (v->cell[1]->type == LVAL_QEXPR), "Function 'cons' passed incorrect type!");
+
+    // Pop the first argument
+    lval *x = lval_pop(v, 0);
+
+    // Take the second argument (v deleted)
+    lval *y = lval_take(v, 0);
+
+    // Create a new QExpr
+    lval *z = lval_qexpr();
+    // Add the first argument to it as is
+    z = lval_add(z, x);
+
+    // Then join the z & y lvals (y deleted)
+    z = lval_join(z, y);
+
+    return z;
+}
+
+lval *builtin_len(lval *v) {
+    LASSERT(v, (v->count == 1), "Function 'len' passed too many arguments!");
+    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'len' passed incorrect type!");
+
+    return lval_num(v->cell[0]->count);
+}
+
+lval *builtin_init(lval *v) {
+    LASSERT(v, (v->count == 1), "Function 'init' passed too many arguments!");
+    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'init' passed incorrect type!");
+    LASSERT(v, (v->cell[0]->count != 0), "Function 'init' passed \"{}\"!");
+
+    // Input OK, take the first argument
+    lval *x = lval_take(v, 0);
+
+    // Delete the last element and return
+    lval_del(lval_pop(x, x->count - 1));
+    return x;
+}
+
 lval *lval_join(lval *x, lval *y) {
     // For each cell in 'y' add it to 'x'
     while(y->count) {
@@ -366,6 +413,10 @@ lval *lval_num(long x){
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_NUM;
     v->num = x;
+    v->err = NULL;
+    v->sym = NULL;
+    v->count = 0;
+    v->cell = NULL;
     return v;
 }
 
@@ -374,6 +425,10 @@ lval *lval_err(char *s){
     v->type = LVAL_ERR;
     v->err = malloc(strlen(s) + 1);
     strcpy(v->err, s);
+    v->sym = NULL;
+    v->num = 0;
+    v->count = 0;
+    v->cell = NULL;
     return v;
 }
 
@@ -382,12 +437,19 @@ lval *lval_sym(char *s){
     v->type = LVAL_SYM;
     v->sym = malloc(strlen(s) + 1);
     strcpy(v->sym, s);
+    v->err = NULL;
+    v->num = 0;
+    v->count = 0;
+    v->cell = NULL;
     return v;
 }
 
 lval *lval_sexpr(void){
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_SEXPR;
+    v->err = NULL;
+    v->sym = NULL;
+    v->num = 0;
     v->count = 0;
     v->cell = NULL;
     return v;
@@ -396,6 +458,9 @@ lval *lval_sexpr(void){
 lval *lval_qexpr(void){
     lval *v = malloc(sizeof(lval));
     v->type = LVAL_QEXPR;
+    v->err = NULL;
+    v->sym = NULL;
+    v->num = 0;
     v->count = 0;
     v->cell = NULL;
     return v;
