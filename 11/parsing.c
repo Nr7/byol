@@ -63,7 +63,7 @@ struct lval {
 
 // Environment structure
 struct lenv {
-    int run;
+    int run;    // Used to exit the program, set to 0 in builtin_exit
     int count;
     lval **vals;
     char **syms;
@@ -105,6 +105,7 @@ lval *builtin_len(lenv *e, lval *v);
 lval *builtin_init(lenv *e, lval *v);
 lval *builtin_def(lenv *e, lval *v);
 lval *builtin_exit(lenv *e, lval *v);
+lval *builtin_printenv(lenv *e, lval *v);
 
 lval *lval_join(lval *x, lval *y);
 
@@ -217,8 +218,10 @@ lval *lval_eval_sexpr(lenv *e, lval *v){
         }
     }
 
-    // Single expression (ignore "exit" function, it should have no arguments)
-    if(v->count == 1 && v->cell[0]->fun != builtin_exit) return lval_take(v, 0);
+    // Single expression (ignore "exit" & "printenv" functions, they should have no arguments)
+    if(v->count == 1 && v->cell[0]->fun != builtin_exit && v->cell[0]->fun != builtin_printenv) {
+        return lval_take(v, 0);
+    }
 
     // Ensure first element is a function after evaluation
     lval *f = lval_pop(v, 0);
@@ -542,6 +545,13 @@ lval *builtin_exit(lenv *e, lval *v) {
     return lval_sym("Exiting");
 }
 
+lval *builtin_printenv(lenv *e, lval *v){
+    for(int i = 0; i < e->count; i++) {
+        printf("%s\n", e->syms[i]);
+    }
+    return lval_sexpr();
+}
+
 lval *lval_join(lval *x, lval *y) {
     // For each cell in 'y' add it to 'x'
     while(y->count) {
@@ -725,6 +735,7 @@ void lenv_add_builtins(lenv *e) {
 
     // Other
     lenv_add_builtin(e, "exit", builtin_exit);
+    lenv_add_builtin(e, "printenv", builtin_printenv);
 }
 
 lval *lval_read_num(mpc_ast_t *t){
