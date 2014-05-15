@@ -123,9 +123,9 @@ void lenv_put(lenv *e, lval *k, lval *v);
 void lenv_add_builtin(lenv *e, char *name, lbuiltin func);
 void lenv_add_builtins(lenv *e);
 
-void lval_print(lval *v);
-void lval_expr_print(lval *v, char open, char close);
-void lval_println(lval *v);
+void lval_print(lenv *e, lval *v);
+void lval_expr_print(lenv *e, lval *v, char open, char close);
+void lval_println(lenv *e, lval *v);
 lval *lval_add(lval *v, lval *x);
 lval *lval_read_num(mpc_ast_t *t);
 lval *lval_read(mpc_ast_t *t);
@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 
             lval *val = lval_read(r.output);
             val = lval_eval(e, val);
-            lval_println(val);
+            lval_println(e, val);
             lval_del(val);
 
             mpc_ast_delete(r.output);
@@ -748,7 +748,7 @@ lval *lval_read_num(mpc_ast_t *t){
 }
 
 // Print the lval "value"
-void lval_print(lval *v) {
+void lval_print(lenv *e, lval *v) {
     switch(v->type) {
         case LVAL_ERR:
             printf("Error: %s", v->err);
@@ -763,15 +763,20 @@ void lval_print(lval *v) {
             break;
 
         case LVAL_SEXPR:
-            lval_expr_print(v, '(', ')');
+            lval_expr_print(e, v, '(', ')');
             break;
 
         case LVAL_QEXPR:
-            lval_expr_print(v, '{', '}');
+            lval_expr_print(e, v, '{', '}');
             break;
 
         case LVAL_FUN:
-            printf("<function>");
+            for(int i = 0; i < e->count; i++) {
+                if(v->fun == e->vals[i]->fun) {
+                    printf("Function name: %s", e->syms[i]);
+                    break;
+                }
+            }
             break;
 
         default:
@@ -780,10 +785,10 @@ void lval_print(lval *v) {
     }
 }
 
-void lval_expr_print(lval *v, char open, char close) {
+void lval_expr_print(lenv *e, lval *v, char open, char close) {
     putchar(open);
     for(int i = 0; i < v->count; i++) {
-        lval_print(v->cell[i]);
+        lval_print(e, v->cell[i]);
         // Don't print trailing space if last element
         if (i != (v->count - 1)) putchar(' ');
     }
@@ -791,7 +796,7 @@ void lval_expr_print(lval *v, char open, char close) {
 }
 
 // Print the lval "value" plus a newline char
-void lval_println(lval *v) { lval_print(v); putchar('\n'); }
+void lval_println(lenv *e, lval *v) { lval_print(e, v); putchar('\n'); }
 
 lval *lval_add(lval *v, lval *x){
     v->count += 1;
