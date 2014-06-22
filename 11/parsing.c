@@ -9,6 +9,17 @@
         return err; \
     }
 
+#define LASSERT_NUM(func_name, args, arg_count) \
+    LASSERT(args, args->count != arg_count, \
+        "Function '%s' passed incorrect number of arguments. Got %i, Expected %i", func_name, args->count, arg_count);
+
+#define LASSERT_TYPE(func_name, args, index, type) \
+    LASSERT(args, args->cell[index]->type == type, \
+        "Function '%s' passed incorrect type for argument %i. Got %s, expected %s", func_name, index, ltype_name(args->cell[index]->type), ltype_name(type));
+
+#define LASSERT_NOT_EMPTY(func_name, args, index) \
+    LASSERT(args, args->cell[index]->count != 0, "Function '%s' passed {} for argument %i", func_name, index);
+
 #ifdef _WIN32
 
 #include <string.h>
@@ -412,10 +423,9 @@ lval *builtin_op(lenv *e, lval *v, char *op) {
 
 lval *builtin_head(lenv *e, lval *v){
     // Check for errors
-    LASSERT(v, (v->count == 1), "Function 'head' passed too many arguments. Got %i, Expected %i", v->count, 1);
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'head' passed incorrect type. Got %s, expected %s.",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
-    LASSERT(v, (v->cell[0]->count != 0), "Function 'head' passed \"{}\"!");
+    LASSERT_NUM("head", v, 1);
+    LASSERT_TYPE("head", v, 0, LVAL_QEXPR);
+    LASSERT_NOT_EMPTY("head", v, 0);
 
     // Input OK, take the first argument
     lval *x = lval_take(v, 0);
@@ -427,10 +437,9 @@ lval *builtin_head(lenv *e, lval *v){
 
 lval *builtin_tail(lenv *e, lval *v){
     // Check for errors
-    LASSERT(v, (v->count == 1), "Function 'tail' passed too many arguments. Got %i, Expected %i", v->count, 1);
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'tail' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
-    LASSERT(v, (v->cell[0]->count != 0), "Function 'tail' passed \"{}\"!");
+    LASSERT_NUM("tail", v, 1);
+    LASSERT_TYPE("tail", v, 0, LVAL_QEXPR);
+    LASSERT_NOT_EMPTY("tail", v, 0);
 
     // Input OK, take the first argument
     lval *x = lval_take(v, 0);
@@ -449,9 +458,8 @@ lval *builtin_list(lenv *e, lval *v) {
 }
 
 lval *builtin_eval(lenv *e, lval *v){
-    LASSERT(v, (v->count == 1), "Function 'eval' passed too many arguments. Got %i, expected 1", v->count);
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'eval' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
+    LASSERT_NUM("eval", v, 1);
+    LASSERT_TYPE("eval", v, 0, LVAL_QEXPR);
 
     lval *x = lval_take(v, 0);
     x->type = LVAL_SEXPR;
@@ -460,7 +468,7 @@ lval *builtin_eval(lenv *e, lval *v){
 
 lval *builtin_join(lenv *e, lval *v) {
     for(int i = 0; i < v->count; i++) {
-        LASSERT(v, (v->cell[i]->type == LVAL_QEXPR), "Function 'join' passed incorrect type. Argument %i was a %s , expected a %s", i + 1, ltype_name(v->cell[i]->type), ltype_name(LVAL_QEXPR));
+        LASSERT_TYPE("join", v, i, LVAL_QEXPR);
     }
 
     lval *x = lval_pop(v, 0);
@@ -474,9 +482,8 @@ lval *builtin_join(lenv *e, lval *v) {
 }
 
 lval *builtin_cons(lenv *e, lval *v) {
-    LASSERT(v, (v->count == 2), "Function 'cons' passed incorrect amount of arguments. Got %i, expected 2", v->count);
-    LASSERT(v, (v->cell[1]->type == LVAL_QEXPR), "Function 'cons' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[1]->type), ltype_name(LVAL_QEXPR));
+    LASSERT_NUM("cons", v, 2);
+    LASSERT_TYPE("cons", v, 1, LVAL_QEXPR);
 
     // Pop the first argument
     lval *x = lval_pop(v, 0);
@@ -496,18 +503,16 @@ lval *builtin_cons(lenv *e, lval *v) {
 }
 
 lval *builtin_len(lenv *e, lval *v) {
-    LASSERT(v, (v->count == 1), "Function 'len' passed too many arguments. Got %i, expected 1", v->count);
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'len' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
+    LASSERT_NUM("len", v, 1);
+    LASSERT_TYPE("len", v, 0, LVAL_QEXPR);
 
     return lval_num(v->cell[0]->count);
 }
 
 lval *builtin_init(lenv *e, lval *v) {
-    LASSERT(v, (v->count == 1), "Function 'init' passed too many arguments. Got %i, expected 1", v->count);
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'init' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
-    LASSERT(v, (v->cell[0]->count != 0), "Function 'init' passed \"{}\"!");
+    LASSERT_NUM("init", v, 1);
+    LASSERT_TYPE("init", v, 0, LVAL_QEXPR);
+    LASSERT_NOT_EMPTY("init", v, 0);
 
     // Input OK, take the first argument
     lval *x = lval_take(v, 0);
@@ -518,8 +523,7 @@ lval *builtin_init(lenv *e, lval *v) {
 }
 
 lval *builtin_def(lenv *e, lval *v){
-    LASSERT(v, (v->cell[0]->type == LVAL_QEXPR), "Function 'def' passed incorrect type. Got %s, expected %s",
-            ltype_name(v->cell[0]->type), ltype_name(LVAL_QEXPR));
+    LASSERT_TYPE("def", v, 0, LVAL_QEXPR);
 
     // Check that the first argument a symbol list
     lval *syms = v->cell[0];
